@@ -48,3 +48,12 @@ git clone https://github.com/donatik27/warptap.git
 cd warptap
 npm install
 vercel --prod
+
+## 📬 Contact & Socials
+
+Stay connected with me across platforms:
+
+- 🟣 **Farcaster**: [@donatik27](https://warpcast.com/donatik27)
+- 🟢 **Lens Protocol**: [@pancakswap](https://hey.xyz/u/pancakswap)
+- 🐦 **Twitter/X**: [@noisyb0y1](https://x.com/noisyb0y1)
+- 📢 **Telegram Channel**: [crypt0GABA](https://t.me/crypt0GABA)
