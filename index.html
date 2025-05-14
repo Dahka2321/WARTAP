@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WarpTap</title>
+
+  <!-- ✅ Farcaster Miniapp meta -->
+  <meta name="fc:frame" content="vNext" />
+  <meta name="fc:frame:button:1" content="Play" />
+  <meta name="fc:frame:post_url" content="https://warptap.vercel.app/game.html" />
+  <meta name="fc:frame:image" content="https://warptap.vercel.app/assets/cover.png" />
+
+  <!-- Optional: OG tags for preview on other platforms -->
+  <meta property="og:image" content="https://warptap.vercel.app/assets/cover.png" />
+  <meta property="og:title" content="WarpTap — MiniGame on Monad" />
+  <meta property="og:description" content="Play. Score. Win. Tap your way to the top." />
+
+  <style>
+    body {
+      margin: 0;
+      background: #0b0015;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .warp-logo {
+      font-size: 72px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #b47aff;
+      text-shadow:
+        0 0 15px rgba(180, 122, 255, 0.4),
+        0 0 30px rgba(180, 122, 255, 0.2),
+        0 0 45px rgba(180, 122, 255, 0.1);
+      animation: blink 2s ease-in-out 3;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      25% { opacity: 0.4; }
+      50% { opacity: 1; }
+      75% { opacity: 0.5; }
+    }
+
+    .arrow-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 80px;
+      margin-top: 60px;
+      opacity: 0;
+      animation: fade-in 2.5s ease-in-out forwards;
+      animation-delay: 2s;
+    }
+
+    .arrow {
+      font-size: 32px;
+      color: #b47aff;
+      animation: wiggle 1.5s infinite ease-in-out;
+    }
+
+    .arrow.left {
+      transform: rotate(-25deg);
+    }
+
+    .arrow.right {
+      transform: rotate(25deg);
+    }
+
+    @keyframes wiggle {
+      0%, 100% { transform: translateY(0); opacity: 0.6; }
+      50% { transform: translateY(4px); opacity: 1; }
+    }
+
+    @keyframes fade-in {
+      to { opacity: 1; }
+    }
+
+    #startBtn {
+      display: none;
+      margin-top: 30px;
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #7a42f4;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(122, 66, 244, 0.6);
+      transition: transform 0.2s;
+    }
+
+    #startBtn:hover {
+      transform: scale(1.08);
+    }
+
+    .coin {
+      position: absolute;
+      width: 40px;
+      top: -50px;
+      pointer-events: none;
+      animation: fall 3s linear forwards;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(110vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="warp-logo">WarpTap</div>
+
+  <div class="arrow-wrapper">
+    <span class="arrow left">↘</span>
+    <span class="arrow right">↙</span>
+  </div>
+
+  <button id="startBtn">Start</button>
+
+  <script>
+    setTimeout(() => {
+      const startBtn = document.getElementById('startBtn');
+      startBtn.style.display = 'block';
+
+      startBtn.addEventListener('click', () => {
+        for (let i = 0; i < 40; i++) {
+          const coin = document.createElement('img');
+          coin.src = 'assets/coin.png';
+          coin.className = 'coin';
+          coin.style.left = Math.random() * 100 + 'vw';
+          coin.style.animationDelay = Math.random() * 1.5 + 's';
+          document.body.appendChild(coin);
+          setTimeout(() => coin.remove(), 4000);
+        }
+
+        setTimeout(() => {
+          window.location.href = 'game.html';
+        }, 3500);
+      });
+    }, 2500);
+  </script>
+</body>
+</html>

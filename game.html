@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WarpTap Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0b0015;
+      color: white;
+      font-family: sans-serif;
+      overflow: hidden;
+      text-align: center;
+    }
+    .center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #2b0050;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(122, 66, 244, 0.6);
+    }
+    .player-option {
+      margin: 10px;
+      display: inline-block;
+      cursor: pointer;
+      transition: 0.3s ease;
+      border-radius: 12px;
+      padding: 5px;
+    }
+    .player-option img {
+      width: 100px;
+      height: 100px;
+      border-radius: 10px;
+      object-fit: contain;
+    }
+    .player-option.selected {
+      box-shadow: 0 0 10px 5px #8e2fff;
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: scale(1.05);
+    }
+    #nicknameBox {
+      margin-top: 20px;
+      display: none;
+    }
+    #gameArea {
+      display: none;
+      position: relative;
+      height: 100vh;
+      width: 100vw;
+    }
+    .coin {
+      position: absolute;
+      width: 30px;
+      animation: fall 4s linear infinite;
+    }
+    @keyframes fall {
+      0% { top: -50px; opacity: 1; }
+      100% { top: 100vh; opacity: 0; }
+    }
+    #timer {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 24px;
+    }
+    #scoreDisplay {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+    }
+    #leaderboard {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 16px;
+      max-width: 200px;
+      text-align: left;
+    }
+    #adminControls {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      display: block;
+    }
+    #adminControls button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #8f4fff;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div id="setup" class="center">
+    <h2>Choose Your Character</h2>
+    <div>
+      <div class="player-option" id="opt-robot">
+        <img src="assets/players/robot.png">
+        <p>🤖 Robot</p>
+      </div>
+      <div class="player-option" id="opt-frog">
+        <img src="assets/players/frog.png">
+        <p>🐸 Frog</p>
+      </div>
+      <div class="player-option" id="opt-dog">
+        <img src="assets/players/dog.png">
+        <p>🐶 Dog</p>
+      </div>
+    </div>
+    <div id="nicknameBox">
+      <input type="text" id="nickname" placeholder="Enter your nickname" />
+      <button onclick="startGame()">Start Game</button>
+    </div>
+  </div>
+
+  <div id="gameArea">
+    <div id="timer">Time: 60</div>
+    <div id="scoreDisplay">Score: 0</div>
+  </div>
+
+  <div id="resultScreen" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2b0050; padding: 30px; border-radius: 20px; box-shadow: 0 0 20px rgba(122, 66, 244, 0.6); color: white;">
+    <h2>Congratulations!</h2>
+    <p id="finalScoreText">Great result! You scored: 0</p>
+  </div>
+
+  <div id="leaderboard">
+    <h4>Leaderboard</h4>
+    <ul id="leaderList"></ul>
+  </div>
+
+  <div id="adminControls">
+    <button onclick="checkRound()">Check Round</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>
+    // Вставляється повний ABI (сокращено тут для зручності)
+    const ABI = [
+      {"inputs":[{"internalType":"address","name":"_treasury","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
+      {"inputs":[],"name":"ENTRY_FEE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"ROUND_DURATION","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"checkRound","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"getPlayers","outputs":[{"internalType":"address[]","name":"","type":"address[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"getPrizePool","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"joinGame","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"playerList","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"players","outputs":[{"internalType":"uint256","name":"score","type":"uint256"},{"internalType":"bool","name":"joined","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"roundActive","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"roundStartTime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"score","type":"uint256"}],"name":"submitScore","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"treasury","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}
+    ];
+    const CONTRACT_ADDRESS = "0xa2beb820f873f4a6be57fab5ce0089a6e2b14789";
+
+    let selectedPlayer = null;
+    let score = 0;
+    let interval;
+
+    window.onload = () => {
+      document.querySelectorAll('.player-option').forEach(el => {
+        el.addEventListener('click', () => {
+          document.querySelectorAll('.player-option').forEach(e => e.classList.remove('selected'));
+          el.classList.add('selected');
+          selectedPlayer = el.id.replace('opt-', '');
+          document.getElementById('nicknameBox').style.display = 'block';
+        });
+      });
+      loadLeaderboard();
+    };
+
+    async function startGame() {
+      const nickname = document.getElementById('nickname').value.trim();
+      if (!nickname || !selectedPlayer) return alert("Choose a character and enter a nickname");
+
+      if (typeof window.ethereum === 'undefined') return alert("Install MetaMask first");
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+      try {
+        await contract.joinGame({ value: ethers.utils.parseEther("5") });
+      } catch (e) {
+        return alert("Transaction rejected");
+      }
+
+      document.getElementById('setup').style.display = 'none';
+      document.getElementById('gameArea').style.display = 'block';
+      score = 0;
+      document.getElementById('scoreDisplay').innerText = `Score: ${score}`;
+
+      generateCoins();
+      startTimer(60, async () => {
+        document.getElementById('gameArea').style.display = 'none';
+        document.getElementById('resultScreen').style.display = 'block';
+        document.getElementById('finalScoreText').innerText = `Great result! You scored: ${score}`;
+        explodeConfetti();
+
+        try {
+          const tx = await contract.submitScore(score);
+          await tx.wait();
+          console.log('Score submitted');
+        } catch (err) {
+          console.warn('Submit score failed or already sent', err);
+        }
+
+        try {
+          const isActive = await contract.roundActive();
+          if (!isActive) {
+            const tx2 = await contract.checkRound();
+            await tx2.wait();
+            console.log('Round checked');
+          }
+        } catch (err) {
+          console.warn('Check round failed or already processed', err);
+        }
+
+        loadLeaderboard();
+      });
+    }
+
+    function generateCoins() {
+      for (let i = 0; i < 40; i++) {
+        const coin = document.createElement('img');
+        coin.src = Math.random() > 0.5 ? 'assets/coins/monad.png' : 'assets/coins/warpcast.png';
+        coin.className = 'coin';
+        coin.style.left = `${Math.random() * 100}vw`;
+        coin.style.animationDuration = `${2 + Math.random() * 3}s`;
+        coin.onclick = () => {
+          score++;
+          coin.remove();
+          document.getElementById('scoreDisplay').innerText = `Score: ${score}`;
+        }
+        document.getElementById('gameArea').appendChild(coin);
+      }
+    }
+
+    function startTimer(seconds, onEnd) {
+      const timerEl = document.getElementById('timer');
+      let time = seconds;
+      timerEl.innerText = `Time: ${time}`;
+      interval = setInterval(() => {
+        time--;
+        timerEl.innerText = `Time: ${time}`;
+        if (time <= 0) {
+          clearInterval(interval);
+          onEnd();
+        }
+      }, 1000);
+    }
+
+    async function checkRound() {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+      try {
+        await contract.checkRound();
+        alert("Round checked successfully ✅");
+      } catch (err) {
+        console.error(err);
+        alert("Round check failed ❌");
+      }
+    }
+
+    function explodeConfetti() {
+      for (let i = 0; i < 40; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = `${Math.random() * window.innerWidth}px`;
+        confetti.style.top = `${Math.random() * window.innerHeight}px`;
+        confetti.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        confetti.style.position = 'absolute';
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 1000);
+      }
+    }
+
+    async function loadLeaderboard() {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+      try {
+        const players = await contract.getPlayers();
+        const leaderboardData = await Promise.all(players.map(async addr => {
+          const { score } = await contract.players(addr);
+          return { address: addr, score: parseInt(score.toString()) };
+        }));
+
+        leaderboardData.sort((a, b) => b.score - a.score);
+
+        const list = document.getElementById('leaderList');
+        list.innerHTML = '';
+        leaderboardData.slice(0, 5).forEach((p, index) => {
+          const li = document.createElement('li');
+          const rank = ['1st', '2nd', '3rd', '4th', '5th'][index] || `${index + 1}th`;
+          li.innerText = `${rank}: ${p.address.slice(0, 6)}... - ${p.score}`;
+          list.appendChild(li);
+        });
+      } catch (err) {
+        console.error('Failed to load leaderboard:', err);
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/@farcaster/miniapp/dist/index.umd.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      window.farcasterMiniApp.ready();
+    });
+  </script>
+</body>
+</html>
